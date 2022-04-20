@@ -12,9 +12,13 @@ class node:
         
         self.res = 0.391            # RPLiDAR S1 Resolution in degree
         self.mode = 0
-        self.speed = 0.5
+        self.kp = 1
+        self.kd = 0.001
+        self.prev_err = 0.0
+        self.speed = 0.1
         self.turn = -1.0
 
+        self.cmd_vel = Twist()
         self.pub_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
         
     def ScanSubscriber(self, data):
@@ -27,63 +31,116 @@ class node:
         #
         #       920(360)|0(0)
         # degree: 150~180
-        deg_s_point = int(120 / self.res)
-        deg_e_point = int(180 / self.res)
-        ranges = ranges[deg_s_point:deg_e_point]    # Front right scan value
+        # deg_s_point = int(120 / self.res)
+        # deg_e_point = int(240 / self.res)
+        # deg_s_point = int(60 / self.res)
+        # deg_e_point = int(120 / self.res)
+        # ranges = ranges[deg_s_point:deg_e_point]    # Front right scan value
         #rospy.loginfo(ranges)
         
         self.WallFollow(ranges)
         
+    def Deg2Idx(self, deg):
+        return int(deg / self.res)
+    
+    def ToTheWall(self, nearest_dir, dist_err):
+        #self.cmd_vel.angular.z = 0.0
+        
+        if (nearest_dir == 0):                  # Approach to right wall
+            speed = self.kp * dist_err + self.kd * (dist_err - self.prev_err)
+            self.prev_err = dist_err
+            self.cmd_vel.linear.x = 0.0
+            self.cmd_vel.linear.y = speed
+            rospy.loginfo('Approaching to right wall')
+        elif (nearest_dir == 1):                # Approach to front wall
+            speed = self.kp * dist_err + self.kd * (dist_err - self.prev_err)
+            self.prev_err = dist_err
+            self.cmd_vel.linear.x = -speed
+            self.cmd_vel.linear.y = 0.0
+            rospy.loginfo('Approaching to front wall')
+        elif (nearest_dir == 2):                # Approach to left wall
+            speed = self.kp * dist_err + self.kd * (dist_err - self.prev_err)
+            self.prev_err = dist_err
+            self.cmd_vel.linear.x = 0.0
+            self.cmd_vel.linear.y = -speed
+            rospy.loginfo('Approaching to left wall')
+        elif (nearest_dir == 3):                # Approach to back wall
+            speed = self.kp * dist_err + self.kd * (dist_err - self.prev_err)
+            self.prev_err = dist_err
+            self.cmd_vel.linear.x = speed
+            self.cmd_vel.linear.y = 0.0
+            rospy.loginfo('Approaching to back wall')
+            
+        self.pub_vel.publish(self.cmd_vel)
+        
+    def Rotating(self):
+        # Rotate until attach right side of robot to the wall
+        self.cmd_vel.linear.x = 0.0
+        self.cmd_vel.linear.y = 0.0
+        self.cmd_vel.angular.z = 0.5
+            
+        rospy.loginfo('Rotating...')
+        self.pub_vel.publish(self.cmd_vel)
+        
+    def Driving(self):
+        # Follow the wall
+        self.cmd_vel.linear.x = 0.5
+        self.cmd_vel.angular.z = 0.0
+        
+        rospy.loginfo('Following the wall')
+        self.pub_vel.publish(self.cmd_vel)
+    
     def WallFollow(self, ranges):
-        # ranges: front right ~ front
-        # Filtering LiDAR data blocked by robot frame
-        ranges = [dist for dist in ranges if dist > 0.5]
-        
-        cmd_vel = Twist()
-        
-        conf_dist = 1.0
-        # No obstacles: Spiral motion to right side
         if (self.mode == 0):
-            speed = self.speed
-            turn = self.turn
-            rospy.loginfo('Spiral motion ' + str(speed) + ' ' + str(turn))
-            if (max(ranges) < conf_dist):
-                self.mode = 1
-        # Face obstacles: Back step
-        elif (self.mode == 1):
-            speed = -0.5
-            turn = 1.0
-            rospy.loginfo('Back step ' + str(speed) + ' ' + str(turn))
-            if (min(ranges) > conf_dist):
+            # ranges: front right ~ front
+            # Filtering LiDAR data blocked by robot frame
+            #ranges = [dist for dist in ranges if dist > 0.3]
+                    
+            # Find nearest wall
+            dist_r = dist_r = sum(ranges[self.Deg2Idx(60):self.Deg2Idx(120)]) \
+                            / len(ranges[self.Deg2Idx(60):self.Deg2Idx(120)])       # Avarage of right side scan data
+            dist_f = dist_f = sum(ranges[self.Deg2Idx(150):self.Deg2Idx(210)]) \
+                            / len(ranges[self.Deg2Idx(150):self.Deg2Idx(210)])      # Avarage of front side scan data
+            dist_l = dist_l = sum(ranges[self.Deg2Idx(240):self.Deg2Idx(300)]) \
+                            / len(ranges[self.Deg2Idx(240):self.Deg2Idx(300)])      # Avarage of left side scan data
+            dist_b = dist_b = (sum(ranges[self.Deg2Idx(0):self.Deg2Idx(30)]) + sum(ranges[self.Deg2Idx(330):self.Deg2Idx(360)])) \
+                            / (len(ranges[self.Deg2Idx(0):self.Deg2Idx(30)]) + len(ranges[self.Deg2Idx(330):self.Deg2Idx(360)]))    # Avarage of back side scan data
+            dist = [dist_r, dist_f, dist_l, dist_b]
+            nearest_dir = dist.index(min(dist))     # 0: right, 1: front, 2: left, 3: back
+            
+            dist_ref = 1.0                          # Reference distance between wall and robot
+            dist_err = dist_ref - dist[nearest_dir]
+            
+            if (abs(dist_err) > 0.1):
+                # Approaching to the wall is first
+                self.ToTheWall(nearest_dir, dist_err)
+            else:
+                # if (nearest_dir == 0):              # Right side of robot is attached to the wall
+                #     self.Driving()
+                # else:                               # Other side of robot is attached to the wall
+                if (abs(ranges[self.Deg2Idx(90)] - 1.0) < 0.1):
+                    # Right side of robot is attached to the wall
+                    self.Driving()
+                else:
+                    self.mode = 1
+        else:
+            if (abs(ranges[self.Deg2Idx(90)] - 1.0) < 0.1):
+                # Right side of robot is attached to the wall
                 self.mode = 0
-                self.turn += 0.2
-                if (self.turn > 0.0):
-                    self.mode = 2
-        # Wall following to left side
-        elif (self.mode == 2):
-            self.turn = -1.0
-            speed = self.speed
-            turn = 0.0
-            rospy.loginfo('Wall following ' + str(speed) + ' ' + str(turn))
-            if (max(ranges) < conf_dist):
-                self.mode = 1
-        
-        cmd_vel.linear.x = speed
-        cmd_vel.angular.z = turn
-        self.pub_vel.publish(cmd_vel)
+            else:
+                self.Rotating()
         
     def QuitHandler(self):
         rospy.loginfo('Shuting down process...')
         
-        cmd_vel = Twist()
-        cmd_vel.linear.x = 0.0
-        cmd_vel.linear.y = 0.0
-        cmd_vel.linear.z = 0.0
+        self.cmd_vel.linear.x = 0.0
+        self.cmd_vel.linear.y = 0.0
+        self.cmd_vel.linear.z = 0.0
         
-        cmd_vel.angular.x = 0.0
-        cmd_vel.angular.y = 0.0
-        cmd_vel.angular.z = 0.0
-        self.pub_vel.publish(cmd_vel)
+        self.cmd_vel.angular.x = 0.0
+        self.cmd_vel.angular.y = 0.0
+        self.cmd_vel.angular.z = 0.0
+        self.pub_vel.publish(self.cmd_vel)
 
     def run(self):
         rospy.Subscriber('/scan', LaserScan, self.ScanSubscriber)
