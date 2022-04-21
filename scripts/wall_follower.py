@@ -13,8 +13,6 @@ class node:
         self.res = 0.391            # RPLiDAR S1 Resolution in degree
         self.mode = 0
         self.cnt = 0
-        self.kp = 1
-        self.kd = 0.001
         self.dist_ref = 0.5         # Reference distance between wall and robot
         self.prev_err = 0.0
         
@@ -25,32 +23,33 @@ class node:
         return int(deg / self.res)
     
     def ToTheWall(self, nearest_dir, dist_err):
-        #self.cmd_vel.angular.z = 0.0
+        kp = 1
+        kd = 0.001
         
         if (nearest_dir == 0):                  # Approach to right wall
-            speed = self.kp * dist_err + self.kd * (dist_err - self.prev_err)
+            speed = kp * dist_err + kd * (dist_err - self.prev_err)
             self.prev_err = dist_err
-            self.cmd_vel.linear.x = 0.0
+            # self.cmd_vel.linear.x = 0.0
             self.cmd_vel.linear.y = speed
-            rospy.loginfo('Approaching to right wall')
+            rospy.loginfo('Approaching to right wall. ' + 'error: ' + str(dist_err))
         elif (nearest_dir == 1):                # Approach to front wall
-            speed = self.kp * dist_err + self.kd * (dist_err - self.prev_err)
+            speed = kp * dist_err + kd * (dist_err - self.prev_err)
             self.prev_err = dist_err
             self.cmd_vel.linear.x = -speed
-            self.cmd_vel.linear.y = 0.0
-            rospy.loginfo('Approaching to front wall')
+            # self.cmd_vel.linear.y = 0.0
+            rospy.loginfo('Approaching to front wall. ' + 'error: ' + str(dist_err))
         elif (nearest_dir == 2):                # Approach to left wall
-            speed = self.kp * dist_err + self.kd * (dist_err - self.prev_err)
+            speed = kp * dist_err + kd * (dist_err - self.prev_err)
             self.prev_err = dist_err
-            self.cmd_vel.linear.x = 0.0
+            # self.cmd_vel.linear.x = 0.0
             self.cmd_vel.linear.y = -speed
-            rospy.loginfo('Approaching to left wall')
+            rospy.loginfo('Approaching to left wall. ' + 'error: ' + str(dist_err))
         elif (nearest_dir == 3):                # Approach to back wall
-            speed = self.kp * dist_err + self.kd * (dist_err - self.prev_err)
+            speed = kp * dist_err + kd * (dist_err - self.prev_err)
             self.prev_err = dist_err
             self.cmd_vel.linear.x = speed
-            self.cmd_vel.linear.y = 0.0
-            rospy.loginfo('Approaching to back wall')
+            # self.cmd_vel.linear.y = 0.0
+            rospy.loginfo('Approaching to back wall. ' + 'error: ' + str(dist_err))
             
         self.pub_vel.publish(self.cmd_vel)
         
@@ -70,7 +69,7 @@ class node:
         # Rotate until attach right side of robot to the wall
         self.cmd_vel.linear.x = 0.0
         self.cmd_vel.linear.y = 0.0
-        self.cmd_vel.angular.z = 1.0
+        self.cmd_vel.angular.z = 3.0
             
         rospy.loginfo('Rotating... ' + str(self.cnt))
         self.pub_vel.publish(self.cmd_vel)
@@ -79,7 +78,7 @@ class node:
         # Follow the wall
         
         b = ranges[self.Deg2Idx(90)]
-        a = ranges[self.Deg2Idx(150)]
+        a = ranges[self.Deg2Idx(30)]
         theta = 60.0 / 180.0 * np.pi
         alpha = np.arctan((a*np.cos(theta) - b) / (a*np.sin(theta)))
         #print(alpha / np.pi * 180.0)
@@ -91,16 +90,18 @@ class node:
         Dt1 = Dt + L*np.sin(alpha)
         #print(Dt1)
         
+        kp = 0.5
+        kd = 0.1
         speed = 0.5
         dist_err = self.dist_ref - Dt1
-        turn = self.kp * dist_err + self.kd * (dist_err - self.prev_err)
+        turn = kp * dist_err + kd * (dist_err - self.prev_err)
         self.prev_err = dist_err
         
         self.cmd_vel.linear.x = speed
         self.cmd_vel.linear.y = 0.0
         self.cmd_vel.angular.z = turn
         
-        rospy.loginfo('Following the wall')
+        rospy.loginfo('Following the wall. ' + 'error: ' + str(dist_err))
         self.pub_vel.publish(self.cmd_vel)
         
     def ScanSubscriber(self, data):
@@ -129,17 +130,23 @@ class node:
             nearest_dir = dist.index(min(dist))     # 0: right, 1: front, 2: left, 3: back
             
             dist_err = self.dist_ref - dist[nearest_dir]
+            offset = 1
             
             if (abs(dist_err) > 0.1):
-                # Approaching to the wall is first
-                self.ToTheWall(nearest_dir, dist_err)
+                print(np.mean(ranges[self.Deg2Idx(90):self.Deg2Idx(120)]), np.mean(ranges[self.Deg2Idx(60):self.Deg2Idx(90)]) + offset)
+                if (nearest_dir == 0 and np.mean(ranges[self.Deg2Idx(90):self.Deg2Idx(120)]) > np.mean(ranges[self.Deg2Idx(60):self.Deg2Idx(90)]) + offset):
+                    rospy.loginfo('sibal corner')
+                    pass
+                else:
+                    # Approaching to the wall is first
+                    self.ToTheWall(nearest_dir, dist_err)
             else:
                 if (nearest_dir == 0):
                     self.Driving(ranges)
                 else:
                     self.mode = 1
         elif (self.mode == 1):
-            if (self.Assigned(ranges[self.Deg2Idx(60):self.Deg2Idx(120)]) and self.cnt >= 50):
+            if (self.Assigned(ranges[self.Deg2Idx(60):self.Deg2Idx(120)]) and self.cnt >= 10):
                 # Right side of robot is attached to the wall
                 self.mode = 0
                 self.cnt = 0
