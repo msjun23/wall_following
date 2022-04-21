@@ -78,7 +78,7 @@ class node:
         # Follow the wall
         
         b = ranges[self.Deg2Idx(90)]
-        a = ranges[self.Deg2Idx(30)]
+        a = ranges[self.Deg2Idx(150)]
         theta = 60.0 / 180.0 * np.pi
         alpha = np.arctan((a*np.cos(theta) - b) / (a*np.sin(theta)))
         #print(alpha / np.pi * 180.0)
