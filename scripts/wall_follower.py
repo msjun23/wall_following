@@ -3,6 +3,7 @@
 import rospy
 import numpy as np
 
+from std_msgs.msg import String
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 
@@ -11,13 +12,26 @@ class node:
         rospy.init_node('wall_follower', anonymous=True)
         
         self.res = 0.391            # RPLiDAR S1 Resolution in degree
-        self.mode = 0
+        self.mode = -1
         self.cnt = 0
         self.dist_ref = 0.5         # Reference distance between wall and robot
         self.prev_err = 0.0
         
-        self.cmd_vel = Twist()
+        rospy.Subscriber('/umbot_mode', String, self.SetCleaning)
+        rospy.Subscriber('/scan', LaserScan, self.ScanSubscriber)
         self.pub_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+        self.cmd_vel = Twist()
+        
+        rospy.on_shutdown(self.QuitHandler)
+        rospy.spin()
+        
+    def SetCleaning(self, data):
+        rospy.loginfo(data)
+        if (self.mode < 0 and data.data == 'cleaning'):
+            self.mode = 0
+        else:
+            self.QuitHandler()
+            self.mode = -1
         
     def Deg2Idx(self, deg):
         return int(deg / self.res)
@@ -26,27 +40,26 @@ class node:
         kp = 1
         kd = 0.001
         
+        speed = kp * dist_err + kd * (dist_err - self.prev_err)
+        if (speed > 0.22):
+            speed = 0.22
+        elif (speed < -0.22):
+            speed = -0.22
+        self.prev_err = dist_err
+        
         if (nearest_dir == 0):                  # Approach to right wall
-            speed = kp * dist_err + kd * (dist_err - self.prev_err)
-            self.prev_err = dist_err
             # self.cmd_vel.linear.x = 0.0
             self.cmd_vel.linear.y = speed
             rospy.loginfo('Approaching to right wall. ' + 'error: ' + str(dist_err))
         elif (nearest_dir == 1):                # Approach to front wall
-            speed = kp * dist_err + kd * (dist_err - self.prev_err)
-            self.prev_err = dist_err
             self.cmd_vel.linear.x = -speed
             # self.cmd_vel.linear.y = 0.0
             rospy.loginfo('Approaching to front wall. ' + 'error: ' + str(dist_err))
         elif (nearest_dir == 2):                # Approach to left wall
-            speed = kp * dist_err + kd * (dist_err - self.prev_err)
-            self.prev_err = dist_err
             # self.cmd_vel.linear.x = 0.0
             self.cmd_vel.linear.y = -speed
             rospy.loginfo('Approaching to left wall. ' + 'error: ' + str(dist_err))
         elif (nearest_dir == 3):                # Approach to back wall
-            speed = kp * dist_err + kd * (dist_err - self.prev_err)
-            self.prev_err = dist_err
             self.cmd_vel.linear.x = speed
             # self.cmd_vel.linear.y = 0.0
             rospy.loginfo('Approaching to back wall. ' + 'error: ' + str(dist_err))
@@ -69,8 +82,8 @@ class node:
         # Rotate until attach right side of robot to the wall
         self.cmd_vel.linear.x = 0.0
         self.cmd_vel.linear.y = 0.0
-        self.cmd_vel.angular.z = 3.0
-            
+        self.cmd_vel.angular.z = 0.5
+        
         rospy.loginfo('Rotating... ' + str(self.cnt))
         self.pub_vel.publish(self.cmd_vel)
         
@@ -86,19 +99,23 @@ class node:
         Dt = b*np.cos(alpha)
         #print(Dt)
         
-        L = 0.05        # Distance that robot drive to straightly when linear speed is 0.5
+        L = 0.022        # Distance that robot drive to straightly when linear speed is 0.22[m/s]
         Dt1 = Dt + L*np.sin(alpha)
         #print(Dt1)
         
         kp = 0.5
         kd = 0.1
-        speed = 0.5
+        speed = 0.22
         dist_err = self.dist_ref - Dt1
         turn = kp * dist_err + kd * (dist_err - self.prev_err)
+        if (turn > 0.1):
+            turn = 0.1
+        elif (turn < -0.1):
+            turn = -0.1
         self.prev_err = dist_err
         
         self.cmd_vel.linear.x = speed
-        self.cmd_vel.linear.y = 0.0
+        self.cmd_vel.linear.y = turn
         self.cmd_vel.angular.z = turn
         
         rospy.loginfo('Following the wall. ' + 'error: ' + str(dist_err))
@@ -167,13 +184,6 @@ class node:
         self.cmd_vel.angular.z = 0.0
         self.pub_vel.publish(self.cmd_vel)
 
-    def run(self):
-        rospy.Subscriber('/scan', LaserScan, self.ScanSubscriber)
-        
-        rospy.on_shutdown(self.QuitHandler)
-        rospy.spin()
-
 if __name__ == '__main__':
     n = node()
-    n.run()
     
