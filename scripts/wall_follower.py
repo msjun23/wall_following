@@ -12,7 +12,7 @@ class node:
         rospy.init_node('wall_follower', anonymous=True)
         
         self.res = 0.391            # RPLiDAR S1 Resolution in degree
-        self.mode = -1
+        self.mode = 0
         self.cnt = 0
         self.dist_ref = 0.5         # Reference distance between wall and robot
         self.prev_err = 0.0
@@ -135,14 +135,14 @@ class node:
         
         if (self.mode == 0):
             # Find nearest wall
-            dist_r = dist_r = sum(ranges[self.Deg2Idx(60):self.Deg2Idx(120)]) \
-                            / len(ranges[self.Deg2Idx(60):self.Deg2Idx(120)])       # Avarage of right side scan data
-            dist_f = dist_f = sum(ranges[self.Deg2Idx(150):self.Deg2Idx(210)]) \
-                            / len(ranges[self.Deg2Idx(150):self.Deg2Idx(210)])      # Avarage of front side scan data
-            dist_l = dist_l = sum(ranges[self.Deg2Idx(240):self.Deg2Idx(300)]) \
-                            / len(ranges[self.Deg2Idx(240):self.Deg2Idx(300)])      # Avarage of left side scan data
-            dist_b = dist_b = (sum(ranges[self.Deg2Idx(0):self.Deg2Idx(30)]) + sum(ranges[self.Deg2Idx(330):self.Deg2Idx(360)])) \
-                            / (len(ranges[self.Deg2Idx(0):self.Deg2Idx(30)]) + len(ranges[self.Deg2Idx(330):self.Deg2Idx(360)]))    # Avarage of back side scan data
+            dist_r = sum(ranges[self.Deg2Idx(60):self.Deg2Idx(120)]) \
+                    / len(ranges[self.Deg2Idx(60):self.Deg2Idx(120)])       # Avarage of right side scan data
+            dist_f = sum(ranges[self.Deg2Idx(150):self.Deg2Idx(210)]) \
+                    / len(ranges[self.Deg2Idx(150):self.Deg2Idx(210)])      # Avarage of front side scan data
+            dist_l = sum(ranges[self.Deg2Idx(240):self.Deg2Idx(300)]) \
+                    / len(ranges[self.Deg2Idx(240):self.Deg2Idx(300)])      # Avarage of left side scan data
+            dist_b = (sum(ranges[self.Deg2Idx(0):self.Deg2Idx(30)]) + sum(ranges[self.Deg2Idx(330):self.Deg2Idx(360)])) \
+                    / (len(ranges[self.Deg2Idx(0):self.Deg2Idx(30)]) + len(ranges[self.Deg2Idx(330):self.Deg2Idx(360)]))    # Avarage of back side scan data
             dist = [dist_r, dist_f, dist_l, dist_b]
             nearest_dir = dist.index(min(dist))     # 0: right, 1: front, 2: left, 3: back
             
