@@ -97,35 +97,28 @@ class node:
                 
         if regions['front'] > self.dist_ref and regions['fleft'] > self.dist_ref and regions['fright'] > self.dist_ref:
             state_description = 'case 1 - nothing'
-            self.ChangeState(0)
+            self.ChangeState(0)     # Find wall
         elif regions['front'] < self.dist_ref and regions['fleft'] > self.dist_ref and regions['fright'] > self.dist_ref:
-            # Wall at front
             state_description = 'case 2 - front'
-            self.ChangeState(1)
+            self.ChangeState(1)     # CCW rotation
         elif regions['front'] > self.dist_ref and regions['fleft'] > self.dist_ref and regions['fright'] < self.dist_ref:
-            # Wall at fright
             state_description = 'case 3 - fright'
-            self.ChangeState(2)
+            self.ChangeState(2)     # Driving
         elif regions['front'] > self.dist_ref and regions['fleft'] < self.dist_ref and regions['fright'] > self.dist_ref:
-            # Wall at fleft
             state_description = 'case 4 - fleft'
-            self.ChangeState(0)
+            self.ChangeState(0)     # Find wall
         elif regions['front'] < self.dist_ref and regions['fleft'] > self.dist_ref and regions['fright'] < self.dist_ref:
-            # Wall at front and fright
             state_description = 'case 5 - front and fright'
-            self.ChangeState(1)
+            self.ChangeState(1)     # CCW rotation
         elif regions['front'] < self.dist_ref and regions['fleft'] < self.dist_ref and regions['fright'] > self.dist_ref:
-            # Wall at front and fleft
             state_description = 'case 6 - front and fleft'
-            self.ChangeState(1)
+            self.ChangeState(1)     # CCW rotation
         elif regions['front'] < self.dist_ref and regions['fleft'] < self.dist_ref and regions['fright'] < self.dist_ref:
-            # Wall at front, fleft and frtight
             state_description = 'case 7 - front and fleft and fright'
-            self.ChangeState(1)
+            self.ChangeState(1)     # CCW rotation
         elif regions['front'] > self.dist_ref and regions['fleft'] < self.dist_ref and regions['fright'] < self.dist_ref:
-            # Wall at fleft and fright
             state_description = 'case 8 - fleft and fright'
-            self.ChangeState(0)
+            self.ChangeState(0)     # Find wall
         else:
             state_description = 'unknown case'
             rospy.loginfo(regions)
@@ -133,7 +126,7 @@ class node:
         
     def FindWall(self):
         self.cmd_vel.linear.x = self.cnt
-        self.cnt += 0.05
+        self.cnt += 0.01
         if self.cnt > 0.22:
             self.cnt = 0.22
         self.cmd_vel.linear.y = 0.0
