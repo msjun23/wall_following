@@ -161,7 +161,7 @@ class node:
         Dt = b*np.cos(alpha)
         #print(Dt)
         
-        speed = 1.0
+        speed = 0.22
         L = speed / 10        # Distance that robot drives to straightly when linear speed is constant = speed / 10
         Dt1 = Dt + L*np.sin(alpha)
         #print(Dt1)
