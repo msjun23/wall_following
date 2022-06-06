@@ -102,7 +102,7 @@ class node:
         regions = regions_
         
         state_description = ''
-                
+        
         if regions['front'] > self.dist_ref and regions['fleft'] > self.dist_ref and regions['fright'] > self.dist_ref:
             state_description = 'case 1 - nothing: Find wall'
             self.ChangeState(0)     # Find wall
