@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from atexit import register
 import rospy
 import numpy as np
 import math
@@ -48,7 +49,7 @@ class node:
         #
         #       1284(360)|0(0)
         # len(data.ranges) == 1285
-        # 127~153 / 501~531 / 771~795 / 1143~1165 data is blocked by robot frame
+        # 127~153 / 501~531 / 769~800 / 1143~1165 data is blocked by robot frame
         
         # for i in range(len(data.ranges)):
         #     if data.ranges[i] < 0.5:
@@ -65,11 +66,13 @@ class node:
             
             'front':    min(min(data.ranges[self.Deg2Idx(157.5):self.Deg2Idx(202.5)]), 10),     # 562~722
             
-            'fleft':    min(min(min(data.ranges[self.Deg2Idx(202.5):self.Deg2Idx(215)]),        # 722~767
-                                min(data.ranges[self.Deg2Idx(224):self.Deg2Idx(247.5)])), 10),  # 799~883
+            'fleft':    min(min(min(data.ranges[self.Deg2Idx(202.5):self.Deg2Idx(213)]),        # 722~767
+                                min(data.ranges[self.Deg2Idx(225):self.Deg2Idx(247.5)])), 10),  # 802~883
             
             'left':     min(min(data.ranges[self.Deg2Idx(247.5):self.Deg2Idx(292.5)]), 10),     # 883~1043
         }
+        
+        print(regions_)
         
         self.TakeAction()
         # print(data.ranges)
@@ -79,20 +82,21 @@ class node:
         return int(deg / self.res)
     
     def ChangeState(self, state):
-        global state_, state_dict_
+        pass
+        # global state_, state_dict_
         
-        if state is not state_:
-            print('Wall follower - [%s] - %s' % (state, state_dict_[state]))
-            state_ = state
+        # if state is not state_:
+        #     print('Wall follower - [%s] - %s' % (state, state_dict_[state]))
+        #     state_ = state
             
-        if state_ == 0:
-            self.FindWall()
-        elif state_ == 1:
-            self.Rotating()
-        elif state_ == 2:
-            self.Driving()
-        else:
-            rospy.logerr('Unknown state!')
+        # if state_ == 0:
+        #     self.FindWall()
+        # elif state_ == 1:
+        #     self.Rotating()
+        # elif state_ == 2:
+        #     self.Driving()
+        # else:
+        #     rospy.logerr('Unknown state!')
         
     def TakeAction(self):
         global regions_
@@ -101,33 +105,33 @@ class node:
         state_description = ''
                 
         if regions['front'] > self.dist_ref and regions['fleft'] > self.dist_ref and regions['fright'] > self.dist_ref:
-            state_description = 'case 1 - nothing'
+            state_description = 'case 1 - nothing: Find wall'
             self.ChangeState(0)     # Find wall
         elif regions['front'] < self.dist_ref and regions['fleft'] > self.dist_ref and regions['fright'] > self.dist_ref:
-            state_description = 'case 2 - front'
+            state_description = 'case 2 - front: CCW rotation'
             self.ChangeState(1)     # CCW rotation
         elif regions['front'] > self.dist_ref and regions['fleft'] > self.dist_ref and regions['fright'] < self.dist_ref:
-            state_description = 'case 3 - fright'
+            state_description = 'case 3 - fright: Driving'
             self.ChangeState(2)     # Driving
         elif regions['front'] > self.dist_ref and regions['fleft'] < self.dist_ref and regions['fright'] > self.dist_ref:
-            state_description = 'case 4 - fleft'
+            state_description = 'case 4 - fleft: Find wall'
             self.ChangeState(0)     # Find wall
         elif regions['front'] < self.dist_ref and regions['fleft'] > self.dist_ref and regions['fright'] < self.dist_ref:
-            state_description = 'case 5 - front and fright'
+            state_description = 'case 5 - front and fright: CCW rotation'
             self.ChangeState(1)     # CCW rotation
         elif regions['front'] < self.dist_ref and regions['fleft'] < self.dist_ref and regions['fright'] > self.dist_ref:
-            state_description = 'case 6 - front and fleft'
+            state_description = 'case 6 - fleft and front: CCW rotation'
             self.ChangeState(1)     # CCW rotation
         elif regions['front'] < self.dist_ref and regions['fleft'] < self.dist_ref and regions['fright'] < self.dist_ref:
-            state_description = 'case 7 - front and fleft and fright'
+            state_description = 'case 7 - fleft and front and fright: CCW rotation'
             self.ChangeState(1)     # CCW rotation
         elif regions['front'] > self.dist_ref and regions['fleft'] < self.dist_ref and regions['fright'] < self.dist_ref:
-            state_description = 'case 8 - fleft and fright'
+            state_description = 'case 8 - fleft and fright: Find wall'
             self.ChangeState(0)     # Find wall
         else:
             state_description = 'unknown case'
             rospy.loginfo(regions)
-        # rospy.loginfo(state_description)
+        rospy.loginfo(state_description)
         
     def FindWall(self):
         self.cmd_vel.linear.x = self.cnt
