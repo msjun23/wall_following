@@ -82,21 +82,20 @@ class node:
         return int(deg / self.res)
     
     def ChangeState(self, state):
-        pass
-        # global state_, state_dict_
+        global state_, state_dict_
         
-        # if state is not state_:
-        #     print('Wall follower - [%s] - %s' % (state, state_dict_[state]))
-        #     state_ = state
+        if state is not state_:
+            print('Wall follower - [%s] - %s' % (state, state_dict_[state]))
+            state_ = state
             
-        # if state_ == 0:
-        #     self.FindWall()
-        # elif state_ == 1:
-        #     self.Rotating()
-        # elif state_ == 2:
-        #     self.Driving()
-        # else:
-        #     rospy.logerr('Unknown state!')
+        if state_ == 0:
+            self.FindWall()
+        elif state_ == 1:
+            self.Rotating()
+        elif state_ == 2:
+            self.Driving()
+        else:
+            rospy.logerr('Unknown state!')
         
     def TakeAction(self):
         global regions_
