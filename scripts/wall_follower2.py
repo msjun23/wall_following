@@ -26,7 +26,7 @@ class node:
     def __init__(self):
         rospy.init_node('wall_follower', anonymous=True)
         
-        self.res = 0.391            # RPLiDAR S1 Resolution in degree
+        self.res = 0.2802            # RPLiDAR S1 Resolution in degree
         self.dist_ref = 0.7         # Reference distance between wall and robot
         self.cnt = 0.0
         self.prev_err = 0.0
@@ -42,12 +42,13 @@ class node:
         
     def ScanSubscriber(self, data):
         # LiDAR range
-        #            460(180)
+        #            642(180)
         #               x
-        # 690(270)   y--|     230(90)
+        # 963(270)   y--|     321(90)
         #
-        #       920(360)|0(0)
-        # 34~41 / 139~146 / 214~221 / 318~326 degree is blocked by robot frame
+        #       1284(360)|0(0)
+        # len(data.ranges) == 1285
+        # 127~153 / 501~531 / 771~795 / 1143~1165 data is blocked by robot frame
         
         # for i in range(len(data.ranges)):
         #     if data.ranges[i] < 0.5:
@@ -57,13 +58,17 @@ class node:
         
         global regions_
         regions_ = {
-            'right':    min(min(data.ranges[self.Deg2Idx(67.5):self.Deg2Idx(112.5)]), 10),
-            'fright':   min(min(min(data.ranges[self.Deg2Idx(112.5):self.Deg2Idx(138)]), 
-                                min(data.ranges[self.Deg2Idx(147):self.Deg2Idx(157.5)])), 10),
-            'front':    min(min(data.ranges[self.Deg2Idx(157.5):self.Deg2Idx(202.5)]), 10),
-            'fleft':    min(min(min(data.ranges[self.Deg2Idx(202.5):self.Deg2Idx(213)]), 
-                                min(data.ranges[self.Deg2Idx(222):self.Deg2Idx(247.5)])), 10),
-            'left':     min(min(data.ranges[self.Deg2Idx(247.5):self.Deg2Idx(292.5)]), 10),
+            'right':    min(min(data.ranges[self.Deg2Idx(67.5):self.Deg2Idx(112.5)]), 10),      # 240~401
+            
+            'fright':   min(min(min(data.ranges[self.Deg2Idx(112.5):self.Deg2Idx(140)]),        # 401~499
+                                min(data.ranges[self.Deg2Idx(150):self.Deg2Idx(157.5)])), 10),  # 535~562
+            
+            'front':    min(min(data.ranges[self.Deg2Idx(157.5):self.Deg2Idx(202.5)]), 10),     # 562~722
+            
+            'fleft':    min(min(min(data.ranges[self.Deg2Idx(202.5):self.Deg2Idx(215)]),        # 722~767
+                                min(data.ranges[self.Deg2Idx(224):self.Deg2Idx(247.5)])), 10),  # 799~883
+            
+            'left':     min(min(data.ranges[self.Deg2Idx(247.5):self.Deg2Idx(292.5)]), 10),     # 883~1043
         }
         
         self.TakeAction()
