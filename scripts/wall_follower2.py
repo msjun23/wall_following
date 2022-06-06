@@ -72,7 +72,7 @@ class node:
             'left':     min(min(data.ranges[self.Deg2Idx(247.5):self.Deg2Idx(292.5)]), 10),     # 883~1043
         }
         
-        print(regions_)
+        # print(regions_)
         
         self.TakeAction()
         # print(data.ranges)
@@ -130,7 +130,7 @@ class node:
         else:
             state_description = 'unknown case'
             rospy.loginfo(regions)
-        rospy.loginfo(state_description)
+        # rospy.loginfo(state_description)
         
     def FindWall(self):
         self.cmd_vel.linear.x = self.cnt
@@ -152,18 +152,13 @@ class node:
         self.pub_vel.publish(self.cmd_vel)
 
     def Driving(self):
-        # self.cmd_vel.linear.x = 1.0
-        # self.cmd_vel.angular.z = 0.0
-        
-        # self.pub_vel.publish(self.cmd_vel)
-        
         self.cnt = 0.0
         
         # Follow the wall
         b = self.ranges[self.Deg2Idx(90)]
         a = self.ranges[self.Deg2Idx(150)]
         theta = 60.0 / 180.0 * np.pi
-        alpha = np.arctan((a*np.cos(theta) - b) / (a*np.sin(theta)))
+        alpha = np.arctan2((a*np.cos(theta) - b), (a*np.sin(theta)))
         #print(alpha / np.pi * 180.0)
         
         Dt = b*np.cos(alpha)
@@ -188,7 +183,7 @@ class node:
         self.cmd_vel.linear.y = turn
         self.cmd_vel.angular.z = turn
         
-        rospy.loginfo('Following the wall. ' + 'error: ' + str(dist_err))
+        rospy.loginfo('Following the wall. ' + 'error: ' + str(dist_err) + ' Dt1: ' + str(Dt1) + ' Dt: ' + str(Dt) + ' alpha: ' + str(alpha) + ' theta: ' + str(theta))
         self.pub_vel.publish(self.cmd_vel)
         
     def QuitHandler(self):
