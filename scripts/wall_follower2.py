@@ -32,8 +32,9 @@ class node:
         self.cnt = 0.0
         self.prev_err = 0.0
         self.ranges = ()
+        self.mode = 'stop'
         
-        # rospy.Subscriber('/umbot_mode', String, self.SetCleaning)
+        rospy.Subscriber('/umbot_mode', String, self.SetCleaning)
         rospy.Subscriber('/scan', LaserScan, self.ScanSubscriber)
         self.pub_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
         self.cmd_vel = Twist()
@@ -41,42 +42,60 @@ class node:
         rospy.on_shutdown(self.QuitHandler)
         rospy.spin()
         
+    def SetCleaning(self, data):
+        if data.data == 'cleaning':
+            self.mode = 'cleaning'
+        else:
+            self.mode = 'stop'
+            
+            self.cmd_vel.linear.x = 0.0
+            self.cmd_vel.linear.y = 0.0
+            self.cmd_vel.linear.z = 0.0
+            
+            self.cmd_vel.angular.x = 0.0
+            self.cmd_vel.angular.y = 0.0
+            self.cmd_vel.angular.z = 0.0
+            self.pub_vel.publish(self.cmd_vel)
+        
     def ScanSubscriber(self, data):
-        # LiDAR range
-        #            642(180)
-        #               x
-        # 963(270)   y--|     321(90)
-        #
-        #       1284(360)|0(0)
-        # len(data.ranges) == 1285
-        # 127~153 / 501~531 / 769~800 / 1143~1165 data is blocked by robot frame
-        
-        # for i in range(len(data.ranges)):
-        #     if data.ranges[i] < 0.5:
-        #         data.ranges[i] = 40.0
-        
-        self.ranges = data.ranges
-        
-        global regions_
-        regions_ = {
-            'right':    min(min(data.ranges[self.Deg2Idx(67.5):self.Deg2Idx(112.5)]), 10),      # 240~401
+        if self.mode == 'cleaning':
+            # LiDAR range
+            #            642(180)
+            #               x
+            # 963(270)   y--|     321(90)
+            #
+            #       1284(360)|0(0)
+            # len(data.ranges) == 1285
+            # 127~153 / 501~531 / 769~800 / 1143~1165 data is blocked by robot frame
             
-            'fright':   min(min(min(data.ranges[self.Deg2Idx(112.5):self.Deg2Idx(140)]),        # 401~499
-                                min(data.ranges[self.Deg2Idx(150):self.Deg2Idx(157.5)])), 10),  # 535~562
+            # for i in range(len(data.ranges)):
+            #     if data.ranges[i] < 0.5:
+            #         data.ranges[i] = 40.0
             
-            'front':    min(min(data.ranges[self.Deg2Idx(157.5):self.Deg2Idx(202.5)]), 10),     # 562~722
+            self.ranges = data.ranges
             
-            'fleft':    min(min(min(data.ranges[self.Deg2Idx(202.5):self.Deg2Idx(213)]),        # 722~767
-                                min(data.ranges[self.Deg2Idx(225):self.Deg2Idx(247.5)])), 10),  # 802~883
+            global regions_
+            regions_ = {
+                'right':    min(min(data.ranges[self.Deg2Idx(67.5):self.Deg2Idx(112.5)]), 10),      # 240~401
+                
+                'fright':   min(min(min(data.ranges[self.Deg2Idx(112.5):self.Deg2Idx(140)]),        # 401~499
+                                    min(data.ranges[self.Deg2Idx(150):self.Deg2Idx(157.5)])), 10),  # 535~562
+                
+                'front':    min(min(data.ranges[self.Deg2Idx(157.5):self.Deg2Idx(202.5)]), 10),     # 562~722
+                
+                'fleft':    min(min(min(data.ranges[self.Deg2Idx(202.5):self.Deg2Idx(213)]),        # 722~767
+                                    min(data.ranges[self.Deg2Idx(225):self.Deg2Idx(247.5)])), 10),  # 802~883
+                
+                'left':     min(min(data.ranges[self.Deg2Idx(247.5):self.Deg2Idx(292.5)]), 10),     # 883~1043
+            }
             
-            'left':     min(min(data.ranges[self.Deg2Idx(247.5):self.Deg2Idx(292.5)]), 10),     # 883~1043
-        }
-        
-        # print(regions_)
-        
-        self.TakeAction()
-        # print(data.ranges)
-        # print(regions_['right'], regions_['fright'], regions_['front'], regions_['fleft'], regions_['left'])
+            # print(regions_)
+            
+            self.TakeAction()
+            # print(data.ranges)
+            # print(regions_['right'], regions_['fright'], regions_['front'], regions_['fleft'], regions_['left'])
+        else:
+            pass
         
     def Deg2Idx(self, deg):
         return int(deg / self.res)
