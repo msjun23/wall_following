@@ -133,7 +133,7 @@ class node:
             self.ChangeState(2)     # Driving
         elif regions['front'] > self.dist_ref and regions['fleft'] < self.dist_ref and regions['fright'] > self.dist_ref:
             state_description = 'case 4 - fleft: Find wall'
-            self.ChangeState(0)     # Find wall
+            self.ChangeState(1)     # Find wall
         elif regions['front'] < self.dist_ref and regions['fleft'] > self.dist_ref and regions['fright'] < self.dist_ref:
             state_description = 'case 5 - front and fright: CCW rotation'
             self.ChangeState(1)     # CCW rotation
@@ -145,19 +145,20 @@ class node:
             self.ChangeState(1)     # CCW rotation
         elif regions['front'] > self.dist_ref and regions['fleft'] < self.dist_ref and regions['fright'] < self.dist_ref:
             state_description = 'case 8 - fleft and fright: Find wall'
-            self.ChangeState(0)     # Find wall
+            self.ChangeState(1)     # Find wall
         else:
             state_description = 'unknown case'
             rospy.loginfo(regions)
         # rospy.loginfo(state_description)
         
     def FindWall(self):
-        self.cmd_vel.linear.x = self.cnt
-        self.cnt += 0.01
-        if self.cnt > 0.22:
-            self.cnt = 0.22
+        # self.cmd_vel.linear.x = self.cnt
+        # self.cnt += 0.01
+        # if self.cnt > 0.22:
+        #     self.cnt = 0.22
+        self.cmd_vel.linear.x = 0.2
         self.cmd_vel.linear.y = 0.0
-        self.cmd_vel.angular.z = -0.5
+        self.cmd_vel.angular.z = -0.2
         
         self.pub_vel.publish(self.cmd_vel)
 
@@ -188,8 +189,8 @@ class node:
         Dt1 = Dt + L*np.sin(alpha)
         #print(Dt1)
         
-        kp = 0.5
-        kd = 0.1
+        kp = 0.1
+        kd = 0.01
         dist_err = self.dist_ref - Dt1
         turn = kp * dist_err + kd * (dist_err - self.prev_err)
         if (turn > 0.5):
@@ -199,10 +200,11 @@ class node:
         self.prev_err = dist_err
         
         self.cmd_vel.linear.x = speed
-        self.cmd_vel.linear.y = turn
+        self.cmd_vel.linear.y = turn * 3
         self.cmd_vel.angular.z = turn
         
-        rospy.loginfo('Following the wall. ' + 'error: ' + str(dist_err) + ' Dt1: ' + str(Dt1) + ' Dt: ' + str(Dt) + ' alpha: ' + str(alpha) + ' theta: ' + str(theta))
+        # rospy.loginfo('Following the wall. ' + 'error: ' + str(dist_err) + ' Dt1: ' + str(Dt1) + ' Dt: ' + str(Dt) + ' alpha: ' + str(alpha) + ' theta: ' + str(theta))
+        rospy.loginfo('Following the wall. ' + 'error: ' + str(dist_err) + '\n speed: ' + str(speed) + ' turn: ' + str(turn))
         self.pub_vel.publish(self.cmd_vel)
         
     def QuitHandler(self):
