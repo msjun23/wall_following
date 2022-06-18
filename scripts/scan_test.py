@@ -35,7 +35,7 @@ class node:
         
         l = []
         for s in range(len(ranges)):
-            if ranges[s] < 0.5:
+            if ranges[s] < 0.8:
                 l.append(s)
         print(l)
         
