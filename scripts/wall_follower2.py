@@ -214,7 +214,7 @@ class node:
         self.prev_err = dist_err
         
         self.cmd_vel.linear.x = speed
-        self.cmd_vel.linear.y = turn * 3
+        self.cmd_vel.linear.y = 0.0
         self.cmd_vel.angular.z = turn
         
         # rospy.loginfo('Following the wall. ' + 'error: ' + str(dist_err) + ' | Dt1: ' + str(Dt1) + ' | Dt: ' + str(Dt) + ' | alpha: ' + str(alpha) + ' | theta: ' + str(theta) + ' | a: ' + str(a) + ' | b: ' + str(b))
