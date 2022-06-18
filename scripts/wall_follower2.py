@@ -75,18 +75,30 @@ class node:
             self.ranges = data.ranges
             
             global regions_
+            # regions_ = {
+            #     'right':    min(min(data.ranges[self.Deg2Idx(67.5):self.Deg2Idx(112.5)]), 10),      # 240~401
+                
+            #     'fright':   min(min(min(data.ranges[self.Deg2Idx(112.5):self.Deg2Idx(140)]),        # 401~499
+            #                         min(data.ranges[self.Deg2Idx(150):self.Deg2Idx(157.5)])), 10),  # 535~562
+                
+            #     'front':    min(min(data.ranges[self.Deg2Idx(157.5):self.Deg2Idx(202.5)]), 10),     # 562~722
+                
+            #     'fleft':    min(min(min(data.ranges[self.Deg2Idx(202.5):self.Deg2Idx(213)]),        # 722~767
+            #                         min(data.ranges[self.Deg2Idx(225):self.Deg2Idx(247.5)])), 10),  # 802~883
+                
+            #     'left':     min(min(data.ranges[self.Deg2Idx(247.5):self.Deg2Idx(292.5)]), 10),     # 883~1043
+            # }
             regions_ = {
-                'right':    min(min(data.ranges[self.Deg2Idx(67.5):self.Deg2Idx(112.5)]), 10),      # 240~401
+                'right':    min(min(data.ranges[240:401]), 10),     # 240~401
                 
-                'fright':   min(min(min(data.ranges[self.Deg2Idx(112.5):self.Deg2Idx(140)]),        # 401~499
-                                    min(data.ranges[self.Deg2Idx(150):self.Deg2Idx(157.5)])), 10),  # 535~562
+                'fright':   min(min(data.ranges[401:499]), 10),     # 401~499
                 
-                'front':    min(min(data.ranges[self.Deg2Idx(157.5):self.Deg2Idx(202.5)]), 10),     # 562~722
+                'front':    min(min(data.ranges[562:722]), 10),     # 562~722
                 
-                'fleft':    min(min(min(data.ranges[self.Deg2Idx(202.5):self.Deg2Idx(213)]),        # 722~767
-                                    min(data.ranges[self.Deg2Idx(225):self.Deg2Idx(247.5)])), 10),  # 802~883
+                'fleft':    min(min(min(data.ranges[722:738]),        # 722~738
+                                    min(data.ranges[802:883])), 10),  # 802~883
                 
-                'left':     min(min(data.ranges[self.Deg2Idx(247.5):self.Deg2Idx(292.5)]), 10),     # 883~1043
+                'left':     min(min(data.ranges[883:1043]), 10),     # 883~1043
             }
             
             # print(regions_)
