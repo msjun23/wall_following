@@ -94,7 +94,7 @@ class node:
                 
                 'fright':   min(min(data.ranges[401:499]), 10),     # 401~499
                 
-                'front':    min(min(data.ranges[562:722]), 10),     # 562~722
+                'front':    min(min(data.ranges[570:720]), 10),     # 570~720
                 
                 'fleft':    min(min(data.ranges[802:883]), 10),     # 802~883
                 
@@ -116,7 +116,7 @@ class node:
         global state_, state_dict_
         
         if state is not state_:
-            print('Wall follower - [%s] - %s' % (state, state_dict_[state]))
+            # print('Wall follower - [%s] - %s' % (state, state_dict_[state]))
             state_ = state
             
         if state_ == 0:
@@ -161,7 +161,7 @@ class node:
         else:
             state_description = 'unknown case'
             rospy.loginfo(regions)
-        # rospy.loginfo(state_description)
+        rospy.loginfo(state_description)
         
     def FindWall(self):
         # self.cmd_vel.linear.x = self.cnt
